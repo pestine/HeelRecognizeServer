@@ -5,7 +5,8 @@ from recognize.source.findPoints import findPoints
 import json
 import cv2
 import requests
-import time 
+import time
+import os
 
 ### 保证算法的输入图像格式为(224,224,3)
 def preprocess(image):
@@ -31,14 +32,9 @@ def downloadImg(url):
     del r
     return image_name
 
-def recognize(url):
-    image_name = downloadImg(url)
-    image = cv2.imread(image_name)
-    image_name = image_name.split('/')[-1]
-    image = preprocess(image)
-    points = findPoints(image)
-
-    ### 保存图片识别结果
+def resultHandling(image, image_name, points):
+    ### save result as image
+    print(points)
     cv2.circle(image,(points[0][0][1],points[0][0][0]),2,(255,0,0),-1)
     cv2.circle(image,(points[0][0][1],points[0][0][0]),2,(255,0,0),-1)
     cv2.circle(image,(points[0][1][1],points[0][1][0]),2,(255,0,0),-1)
@@ -48,7 +44,7 @@ def recognize(url):
     cv2.circle(image,(points[2][1][1],points[2][1][0]),2,(0,0,255),-1)
     cv2.imwrite("media/image/"+image_name, image)
 
-    dict = {'code':0, 
+    dict = {'code':200, 
             'msg':'识别成功',
             'AnkleInfo':{'AnkleResultURL':'media/image/'+image_name,
                          'leftAnkleInfo':{'top':{   'x':str(points[0][0][0]),
@@ -77,14 +73,41 @@ def recognize(url):
     
     return dict
 
+def recognizeUrl(url):
+    image_path = downloadImg(url)
+    image = cv2.imread(image_path)
+    image_name = image_path.split('/')[-1]
+    image = preprocess(image)
+    points = findPoints(image)
+    return resultHandling(image, image_name, points)
+
+def recognizeImage(image_path):
+    image = cv2.imread(image_path)
+    image_name = image_path.split('/')[-1]
+    image = preprocess(image)
+    points = findPoints(image)
+    return resultHandling(image, image_name, points)
+
 def uploadUrl(request):
     print("postBody: {}".format(request.POST))
     url = request.POST.get('doubleAnkleURL','')
     print("url: {}".format(url))
-    respon = json.dumps(recognize(url))
+    respon = json.dumps(recognizeUrl(url))
 
     return HttpResponse(respon)
 
 def uploadImage(request):
-    print("postBody: {}".format(request.POST))
-    return HttpResponse(request.POST)
+    print("postBody: {}".format(request))
+    file_obj = request.FILES.get("image")
+
+    print("file_obj", file_obj.name)
+    file_path = 'media/origin/' + file_obj.name
+    print("file_path", file_path)
+ 
+    with open(file_path, 'wb+') as f:
+      for chunk in file_obj.chunks():
+        f.write(chunk)
+    
+    respon = json.dumps(recognizeImage(file_path))
+    
+    return HttpResponse(respon)

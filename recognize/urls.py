@@ -4,7 +4,7 @@ from . import tests
 
 urlpatterns = [
     path('uploadUrl', views.uploadUrl, name='uploadUrl'),
-    path('uploadImage', views.uploadUrl, name='uploadImage'),
+    path('uploadImage', views.uploadImage, name='uploadImage'),
     path('test', tests.test, name='test'),
 
 ]
