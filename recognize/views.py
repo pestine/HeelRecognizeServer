@@ -1,7 +1,7 @@
 from os import times
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from recognize.source.findPoints import findPoints
+from recognize.source.findPoints import findPoints, predict
 import json
 import cv2
 import requests
@@ -33,21 +33,27 @@ def downloadImg(url):
     return image_name
 
 def resultHandling(image, image_name, points):
+    angle, prediction = predict(points)
     ### save result as image
-    print(points)
-    cv2.circle(image,(points[0][0][1],points[0][0][0]),2,(255,0,0),-1)
-    cv2.circle(image,(points[0][0][1],points[0][0][0]),2,(255,0,0),-1)
-    cv2.circle(image,(points[0][1][1],points[0][1][0]),2,(255,0,0),-1)
-    cv2.circle(image,(points[1][0][1],points[1][0][0]),2,(0,255,0),-1)
-    cv2.circle(image,(points[1][1][1],points[1][1][0]),2,(0,255,0),-1)
-    cv2.circle(image,(points[2][0][1],points[2][0][0]),2,(0,0,255),-1)
-    cv2.circle(image,(points[2][1][1],points[2][1][0]),2,(0,0,255),-1)
+    print(points, angle, predict)
+    cv2.line(image, (points[0][0][1],points[0][0][0]), (points[1][0][1],points[1][0][0]), (255,255,255), 2) 
+    cv2.line(image, (points[1][0][1],points[1][0][0]), (points[2][0][1],points[2][0][0]), (255,255,255), 2)
+    cv2.line(image, (points[0][1][1],points[0][1][0]), (points[1][1][1],points[1][1][0]), (255,255,255), 2) 
+    cv2.line(image, (points[1][1][1],points[1][1][0]), (points[2][1][1],points[2][1][0]), (255,255,255), 2) 
+    cv2.circle(image, (points[0][0][1],points[0][0][0]), 3,(255,0,0), -1)
+    cv2.circle(image, (points[0][1][1],points[0][1][0]), 3,(255,0,0), -1)
+    cv2.circle(image, (points[1][0][1],points[1][0][0]), 3,(0,255,0), -1)
+    cv2.circle(image, (points[1][1][1],points[1][1][0]), 3,(0,255,0), -1)
+    cv2.circle(image, (points[2][0][1],points[2][0][0]), 3,(0,0,255), -1)
+    cv2.circle(image, (points[2][1][1],points[2][1][0]), 3,(0,0,255), -1)
     cv2.imwrite("media/image/"+image_name, image)
 
     dict = {'code':200, 
             'msg':'识别成功',
             'AnkleInfo':{'AnkleResultURL':'media/image/'+image_name,
-                         'leftAnkleInfo':{'top':{   'x':str(points[0][0][0]),
+                         'rightAnkleInfo':{'angle': angle[0],
+                                          'prediction': prediction[0],
+                                             'top':{'x':str(points[0][0][0]),
                                                     'y':str(points[0][0][1])        
                                           },
                                           'middle':{'x':str(points[1][0][0]),
@@ -57,7 +63,9 @@ def resultHandling(image, image_name, points):
                                                     'y':str(points[2][0][1])
                                           }
                          },
-                         'rightAnkleInfo':{'top':{  'x':str(points[0][1][0]),
+                         'leftAnkleInfo':{'angle': angle[1],
+                                           'prediction': prediction[1],
+                                            'top':{  'x':str(points[0][1][0]),
                                                     'y':str(points[0][1][1])        
                                           },
                                           'middle':{'x':str(points[1][1][0]),
